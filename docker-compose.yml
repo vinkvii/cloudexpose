@@ -1,0 +1,99 @@
+version: "3.8"
+services:
+  app:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: "vpn-reverse-proxy"
+    restart: unless-stopped
+    privileged: true
+    network_mode: service:wg-easy
+      #ports:
+      #- '80:80'
+      #- '81:81'
+      #- '443:443'
+    environment:
+      # Mysql/Maria connection parameters:
+      DB_MYSQL_HOST: "db"
+      DB_MYSQL_PORT: 3306
+      DB_MYSQL_USER: "dbuser"
+      DB_MYSQL_PASSWORD: "dbpass"
+      DB_MYSQL_NAME: "dbase"
+      # Uncomment this if IPv6 is not enabled on your host
+      # DISABLE_IPV6: 'true'
+    volumes:
+      - ./data:/data
+      - ./letsencrypt:/etc/letsencrypt
+    depends_on:
+      - db
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+      - net.ipv4.ip_forward=1
+      - net.ipv6.conf.all.disable_ipv6=0
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+
+  db:
+    image: "mysql"
+    container_name: "mysql"
+    volumes:
+      #- "./mysql_seed.sql:/docker-entrypoint-initdb.d/mysql_seed.sql"
+      - "./dbdata:/var/lib/mysql"
+    command:
+      - "--default-authentication-plugin=mysql_native_password"
+        #ports:
+        #  - '3306:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: "rootPASS"
+      MYSQL_DATABASE: "dbase"
+      MYSQL_USER: "dbuser"
+      MYSQL_PASSWORD: "dbpass"
+
+  phpmyadmin:
+    image: "phpmyadmin/phpmyadmin"
+    container_name: "pma"
+    depends_on:
+      - "db"
+    links:
+      - "db"
+    #ports:
+     # - '84:80'
+    environment:
+      PMA_HOST: "db"
+      PMA_PORT: "3306"
+      UPLOAD_LIMIT: "256M"
+  wg-easy:
+    environment:
+      # ⚠️ Required:
+      # Change this to your host's public address
+      - WG_HOST=vpn.hemasho.com
+
+      # Optional:
+      - PASSWORD=foobar123
+      # - WG_PORT=51820
+      # - WG_DEFAULT_ADDRESS=10.8.0.x
+      # - WG_DEFAULT_DNS=1.1.1.1
+      # - WG_MTU=1420
+      # - WG_ALLOWED_IPS=192.168.15.0/24, 10.0.1.0/24
+      # - WG_PRE_UP=echo "Pre Up" > /etc/wireguard/pre-up.txt
+      # - WG_POST_UP=echo "Post Up" > /etc/wireguard/post-up.txt
+      # - WG_PRE_DOWN=echo "Pre Down" > /etc/wireguard/pre-down.txt
+      # - WG_POST_DOWN=echo "Post Down" > /etc/wireguard/post-down.txt
+
+    image: weejewel/wg-easy
+    container_name: wg-easy
+    volumes:
+      - .:/etc/wireguard
+    ports:
+      - "51820:51820/udp"
+      - "51821:51821/tcp"
+      - "80:80"
+      - "81:81"
+      - "443:443"
+      - "82:80"
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
