@@ -1,4 +1,4 @@
-# Cloudexpose
+# Cloudexpose - A easy self hosted reverse proxy vpn solution to expose localmachine to public
 ---
 
 # VPN Reverse Proxy with Public Internet Exposure
