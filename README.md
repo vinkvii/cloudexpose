@@ -1,4 +1,4 @@
-# cloudexpose
+# Cloudexpose
 ---
 
 # VPN Reverse Proxy with Public Internet Exposure
